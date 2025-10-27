@@ -136,21 +136,102 @@ void Stitcher::linear_pairwise_match() {
 }
 
 void Stitcher::assign_center() {
-  bundle.identity_idx = imgs.size() >> 1;
-  //bundle.identity_idx = 0;
+  // bundle.identity_idx = imgs.size() >> 1;
+  bundle.identity_idx = 5;
 }
 
 void Stitcher::estimate_camera() {
   vector<Shape2D> shapes;
   for (auto& m: imgs) shapes.emplace_back(m.shape());
-  auto cameras = CameraEstimator{pairwise_matches, shapes}.estimate();
+  int identity_idx = bundle.identity_idx;
+  // auto cameras = CameraEstimator{pairwise_matches, shapes, identity_idx}.estimate();
 
-  // produced homo operates on [-w/2,w/2] coordinate
-  REP(i, imgs.size()) {
-    //cout << "Camera " << i << " " << cameras[i].R << ", " << cameras[i].K() << endl;
-    bundle.component[i].homo_inv = cameras[i].K() * cameras[i].R;
-    bundle.component[i].homo = cameras[i].Rinv() * cameras[i].K().inverse();
-  }
+  // // ------------------- OUTPUTTING TRANSFORMATIONS -------------------
+
+  // cout << "--- Transformations to Identity Camera (" << identity_idx << ") ---" << endl;
+
+  // for (size_t i = 0; i < cameras.size(); ++i) {
+  //   Homography R_identity_to_i = cameras[i].R;
+  //   Homography R_i_to_identity = R_identity_to_i.inverse();
+
+  //   cout << "\nTransformation from Camera " << i << " to Identity:" << endl;
+    
+  //   // Simply use the overloaded << operator
+  //   cout << R_i_to_identity << endl;
+  // }
+  // // --------------------------------------------------------------------
+  
+  // // produced homo operates on [-w/2,w/2] coordinate
+  // REP(i, imgs.size()) {
+  //   cout << "Camera " << i << setprecision(10) << " " << cameras[i].R << ", " << cameras[i].K() << endl;
+  //   bundle.component[i].homo_inv = cameras[i].K() * cameras[i].R;
+  //   bundle.component[i].homo = cameras[i].Rinv() * cameras[i].K().inverse();
+  // }
+  
+  double arr_0[9] = { -0.9985888946, -0.0124487552, 0.0516260411,
+                      -0.0127924356,  0.9998981244, -0.0063320210,
+                      -0.0515419559, -0.0069835087, -0.9986464126 };
+  double arr_1[9] = {  0.4621649974, -0.0028250856, -0.8867894531,
+                      0.0010322108,  0.9999959619, -0.0026477790,
+                      0.8867933523,  0.0003083571,  0.4621660472 };
+  double arr_2[9] = {  0.5403707286,  0.0117520165,  0.8413449743,
+                      -0.0191471486,  0.9998152853, -0.0016679094,
+                      -0.8412091669, -0.0152080678,  0.5404959318 };
+  double arr_3[9] = { -0.5070286379, -0.0074376857, -0.8618971175,
+                      -0.0253613345,  0.9996585432,  0.0062928356,
+                      0.8615560127,  0.0250495090, -0.5070441391 };
+  double arr_4[9] = { -0.4572679830, -0.0050358700,  0.8893146978,
+                      -0.0123106030,  0.9999239988, -0.0006676572,
+                      -0.8892437465, -0.0112532985, -0.4572952247 };
+  double arr_5[9] = {  1.0000000000, -0.0000000000,  0.0000000000,
+                      0.0000000000,  1.0000000000, -0.0000000000,
+                      -0.0000000000,  0.0000000000,  1.0000000000 };
+
+  Homography R_identity_to_0(arr_0);
+  Homography R_identity_to_1(arr_1);
+  Homography R_identity_to_2(arr_2);
+  Homography R_identity_to_3(arr_3);
+  Homography R_identity_to_4(arr_4);
+  Homography R_identity_to_5(arr_5);
+
+  double karr_0[9] = { 1423.6510436091, 0.0000000000, -30.8335314730,
+                      0.0000000000,   1423.6510436091, 2.6317322927,
+                      0.0000000000,   0.0000000000,   1.0000000000 };
+  double karr_1[9] = { 1416.1851759822, 0.0000000000, 92.5113853641,
+                      0.0000000000,   1416.1851759822, -9.2591240533,
+                      0.0000000000,   0.0000000000,   1.0000000000 };
+  double karr_2[9] = { 1442.8160626614, 0.0000000000, -8.1432683616,
+                      0.0000000000,   1442.8160626614, 3.6693237945,
+                      0.0000000000,   0.0000000000,   1.0000000000 };
+  double karr_3[9] = { 1368.9686742328, 0.0000000000, -24.3564658952,
+                      0.0000000000,   1368.9686742328, 16.4258463643,
+                      0.0000000000,   0.0000000000,   1.0000000000 };
+  double karr_4[9] = { 1432.3598194127, 0.0000000000, 18.1474713050,
+                      0.0000000000,   1432.3598194127, 1.1116189196,
+                      0.0000000000,   0.0000000000,   1.0000000000 };
+  double karr_5[9] = { 1433.6267770317, 0.0000000000, -58.0127637401,
+                      0.0000000000,   1433.6267770317, -5.4157515520,
+                      0.0000000000,   0.0000000000,   1.0000000000 };
+
+  Homography K_0(karr_0);
+  Homography K_1(karr_1);
+  Homography K_2(karr_2);
+  Homography K_3(karr_3);
+  Homography K_4(karr_4);
+  Homography K_5(karr_5);
+
+  bundle.component[0].homo_inv = K_0 * R_identity_to_0;
+  bundle.component[0].homo = R_identity_to_0.transpose() * K_0.inverse();
+  bundle.component[1].homo_inv = K_1 * R_identity_to_1;
+  bundle.component[1].homo = R_identity_to_1.transpose() * K_1.inverse();
+  bundle.component[2].homo_inv = K_2 * R_identity_to_2;
+  bundle.component[2].homo = R_identity_to_2.transpose() * K_2.inverse();
+  bundle.component[3].homo_inv = K_3 * R_identity_to_3;
+  bundle.component[3].homo = R_identity_to_3.transpose() * K_3.inverse();
+  bundle.component[4].homo_inv = K_4 * R_identity_to_4;
+  bundle.component[4].homo = R_identity_to_4.transpose() * K_4.inverse();
+  bundle.component[5].homo_inv = K_5 * R_identity_to_5;
+  bundle.component[5].homo = R_identity_to_5.transpose() * K_5.inverse();
 }
 
 void Stitcher::build_linear_simple() {

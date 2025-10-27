@@ -15,7 +15,8 @@ class CameraEstimator {
 	public:
 		CameraEstimator(
 				std::vector<std::vector<MatchInfo>>& matches,
-				const std::vector<Shape2D>& image_shapes);
+				const std::vector<Shape2D>& image_shapes,
+				int identity_idx = -1);
 
 		~CameraEstimator();
 
@@ -40,6 +41,8 @@ class CameraEstimator {
 		void traverse(
 				std::function<void(int)> callback_init_node,
 				std::function<void(int, int)> callback_add_edge);
+
+		int identity_idx = -1;
 };
 
 

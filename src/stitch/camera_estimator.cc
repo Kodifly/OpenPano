@@ -20,11 +20,13 @@ namespace pano {
 
 CameraEstimator::CameraEstimator(
     std::vector<std::vector<MatchInfo>>& matches,
-    const std::vector<Shape2D>& image_shapes) :
+    const std::vector<Shape2D>& image_shapes,
+    int identity_idx):
   n(matches.size()),
   matches(matches),
   shapes(image_shapes),
-  cameras(matches.size())
+  cameras(matches.size()),
+  identity_idx(identity_idx)
 { m_assert(matches.size() == shapes.size()); }
 
 CameraEstimator::~CameraEstimator() = default;
@@ -98,7 +100,7 @@ vector<Camera> CameraEstimator::estimate() {
     iba.optimize();
   }
 
-  if (STRAIGHTEN) Camera::straighten(cameras);
+  // if (STRAIGHTEN) Camera::straighten(cameras);
   return cameras;
 }
 
@@ -109,21 +111,34 @@ void CameraEstimator::traverse(
     int v1, v2;
     float weight;
     Edge(int a, int b, float v):v1(a), v2(b), weight(v) {}
-    bool operator < (const Edge& r) const { return weight < r.weight;	}
+    bool operator < (const Edge& r) const { return weight < r.weight; }
   };
-  // choose a starting point
-  Edge best_edge{-1, -1, 0};
-  REP(i, n) REPL(j, i+1, n) {
-    auto& m = matches[i][j];
-    if (m.confidence > best_edge.weight)
-      best_edge = Edge{i, j, m.confidence};
-  }
-  if (best_edge.v1 == -1)
-    error_exit("No connected images are found!");
-  callback_init_node(best_edge.v1);
 
   priority_queue<Edge> q;
   vector<bool> vst(n, false);
+  int start_node = -1;
+  
+  std::cout << "Identity index: " << identity_idx << std::endl;
+
+  // ------------------- MODIFICATION START -------------------
+  if (identity_idx >= 0 && identity_idx < n) {
+    // Use the user-defined identity index if it's valid
+    start_node = identity_idx;
+  } else {
+    // Original fallback: choose a starting point from the best edge
+    Edge best_edge{-1, -1, 0};
+    REP(i, n) REPL(j, i+1, n) {
+      auto& m = matches[i][j];
+      if (m.confidence > best_edge.weight)
+        best_edge = Edge{i, j, m.confidence};
+    }
+    if (best_edge.v1 == -1)
+      error_exit("No connected images are found!");
+    start_node = best_edge.v1;
+  }
+
+  callback_init_node(start_node);
+  // -------------------- MODIFICATION END --------------------
 
   auto enqueue_edges_from = [&](int from) {
     REP(i, n) if (i != from && !vst[i]) {
@@ -133,15 +148,16 @@ void CameraEstimator::traverse(
     }
   };
 
-  vst[best_edge.v1] = true;
-  enqueue_edges_from(best_edge.v1);
+  vst[start_node] = true; // Use start_node here
+  enqueue_edges_from(start_node); // And here
   int cnt = 1;
   while (q.size()) {
+    Edge best_edge = q.top(); // Renamed to avoid shadowing
     do {
       best_edge = q.top();
       q.pop();
     } while (q.size() && vst[best_edge.v2]);
-    if (vst[best_edge.v2])	// the queue is exhausted
+    if (vst[best_edge.v2]) // the queue is exhausted
       break;
     vst[best_edge.v2] = true;
     cnt ++;

@@ -1,0 +1,6 @@
+camera0 -> DA4930148 -> ML
+camera1 -> DA5148680 -> RR
+camera2 -> DA5148683 -> FR
+camera3 -> DA5324645 -> RL
+camera4 -> DA5324655 -> FL
+camera5 -> DA6102933 -> MR (anchor)
